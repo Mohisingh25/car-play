@@ -1,0 +1,48 @@
+plugins {
+    id 'com.android.application'
+}
+
+android {
+    namespace 'com.cardash.display'
+    compileSdk 34
+
+    defaultConfig {
+        applicationId 'com.cardash.display'
+        minSdk 26
+        targetSdk 34
+        versionCode 1
+        versionName '1.0'
+    }
+
+    // One fixed signing key kept in the repo, so every build can be installed over the previous one.
+    signingConfigs {
+        shared {
+            storeFile rootProject.file('signing/cardash.jks')
+            storePassword 'cardash'
+            keyAlias 'cardash'
+            keyPassword 'cardash'
+        }
+    }
+
+    buildTypes {
+        debug {
+            signingConfig signingConfigs.shared
+        }
+    }
+
+    compileOptions {
+        sourceCompatibility JavaVersion.VERSION_11
+        targetCompatibility JavaVersion.VERSION_11
+    }
+
+    // Code shared by both apps (the link between phone and display)
+    sourceSets {
+        main {
+            java.srcDir '../shared/src'
+        }
+    }
+
+    lint {
+        abortOnError false
+    }
+}
