@@ -1,0 +1,46 @@
+name: Build APKs
+
+# Runs every time something is uploaded to the repository, or by hand from the Actions tab.
+on:
+  push:
+    branches: [main, master]
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Get the code
+        uses: actions/checkout@v6
+
+      - name: Build both apps
+        run: |
+          # Use Java 17 if the build machine offers it, otherwise Java 21, otherwise its default
+          if [ -n "$JAVA_HOME_17_X64" ]; then export JAVA_HOME="$JAVA_HOME_17_X64";
+          elif [ -n "$JAVA_HOME_21_X64" ]; then export JAVA_HOME="$JAVA_HOME_21_X64"; fi
+          chmod +x gradlew
+          ./gradlew --no-daemon assembleDebug
+          mkdir -p out
+          cp display/build/outputs/apk/debug/display-debug.apk out/CarDash-Display.apk
+          cp phone/build/outputs/apk/debug/phone-debug.apk out/CarDash-Phone.apk
+
+      - name: Publish the APKs under Releases
+        continue-on-error: true
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh release delete latest --yes --cleanup-tag 2>/dev/null || true
+          gh release create latest out/CarDash-Display.apk out/CarDash-Phone.apk \
+            --target "${{ github.sha }}" \
+            --title "Car Dash (build ${{ github.run_number }})" \
+            --notes "CarDash-Display.apk goes on the car display. CarDash-Phone.apk goes on the Android phone. Setup steps are in the README."
+
+      - name: Attach the APKs to this run as well
+        if: always()
+        uses: actions/upload-artifact@v7
+        with:
+          name: CarDash-APKs
+          path: out/*.apk
